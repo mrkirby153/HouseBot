@@ -18,23 +18,19 @@ object Bot {
         cache(Cache(cacheDir, 10 * 1024 * 1024))
     }.build()
 
-    private val token = File("token").readLines().first()
-
-    private val admins = File("admins").readLines()
-    val channels = File("channels").readLines()
-
     var startTime = 0L
 
     @JvmStatic
     fun main(args: Array<String>) {
-        manager = ShardManager(token)
+        Configuration.load()
+        manager = ShardManager(Configuration.token)
         manager.startAllShards(false)
         val us = manager.getShard(0).selfUser
         println("Logged in as ${us.name}#${us.discriminator}!")
         executor = CommandExecutor(prefix = "!", mentionMode = CommandExecutor.MentionMode.DISABLED,
                 shardManager = manager)
         executor.clearanceResolver = {
-            if (it.user.id in admins)
+            if (it.user.id in Configuration.admins)
                 100
             else
                 0

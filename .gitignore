@@ -1,8 +1,4 @@
 .idea/
 *iml
-admins
-channels
-okhttp-cache/
+run/
 target/
-token
-overlays/

@@ -18,10 +18,11 @@ class Commands {
 
     @Command(name = "profile")
     fun profile(context: Context, cmdContext: CommandContext) {
-        if (context.channel.id !in Bot.channels && Bot.channels.isNotEmpty())
+        val whitelist = Configuration.channelWhitelist[context.guild.id]!!
+        if (context.channel.id !in whitelist && whitelist.isNotEmpty())
             return
         val expiresAt = cooldowns[context.author.id] ?: 0
-        if (expiresAt > System.currentTimeMillis())
+        if (expiresAt > System.currentTimeMillis() && context.author.id !in Configuration.admins)
             return
         val os = ProfileModifier.modify(context.member) ?: throw CommandException(
                 "An error occurred, try again later")
@@ -32,7 +33,7 @@ class Commands {
         val gif = context.author.effectiveAvatarUrl.endsWith("gif")
         val name = if (gif) "profile.gif" else "profile.png"
 
-        if(gif)
+        if (gif)
             processedGifs++
         else
             processedStatic++
@@ -71,4 +72,35 @@ class Commands {
             append("```")
         }).queue()
     }
+
+    @Command(name = "whitelist", arguments = ["<channel:string>"], parent = "hb")
+    fun whitelist(context: Context, cmdContext: CommandContext) {
+        val channel = cmdContext.getNotNull<String>("channel")
+        val regex = Regex("\\d{17,18}")
+        val result = regex.find(channel)?.value ?: throw CommandException(
+                "Could not extract channel id")
+
+        val textChannel = Bot.manager.shards.flatMap { it.guilds }.flatMap { it.textChannels }.firstOrNull { it.id == result }
+                ?: throw CommandException("Text channel not found!")
+
+        Configuration.addWhitelist(textChannel.guild, textChannel)
+        context.channel.sendMessage(
+                ":ok_hand: Channel ${textChannel.asMention} has bee whitelisted!").queue()
+    }
+
+    @Command(name = "unwhitelist", arguments = ["<channel:string>"], parent = "hb")
+    fun unwhitelist(context: Context, cmdContext: CommandContext) {
+        val channel = cmdContext.getNotNull<String>("channel")
+        val regex = Regex("\\d{17,18}")
+        val result = regex.find(channel)?.value ?: throw CommandException(
+                "Could not extract channel id")
+
+        val textChannel = Bot.manager.shards.flatMap { it.guilds }.flatMap { it.textChannels }.firstOrNull { it.id == result }
+                ?: throw CommandException("Text channel not found!")
+
+        Configuration.removeWhitelist(textChannel.guild, textChannel)
+        context.channel.sendMessage(
+                ":ok_hand: Channel ${textChannel.asMention} has bee unwhitelisted!").queue()
+    }
+
 }
