@@ -1,6 +1,6 @@
 import com.mrkirby153.botcore.command.CommandException
-import me.mrkirby153.kcutils.child
 import me.mrkirby153.kcutils.mkdirIfNotExist
+import net.dv8tion.jda.core.entities.Guild
 import net.dv8tion.jda.core.entities.Member
 import okhttp3.Request
 import java.awt.Color
@@ -19,12 +19,12 @@ object ProfileModifier {
 
     private val overlayDir = File("overlays").mkdirIfNotExist()
 
-    private val overlayCache = mutableMapOf<String, BufferedImage>()
+    val overlayCache = mutableMapOf<String, BufferedImage>()
 
-    fun modify(member: Member): ByteArrayOutputStream? {
+    fun modify(member: Member, key: String): ByteArrayOutputStream? {
         val profileUrl = member.user.effectiveAvatarUrl
         if (profileUrl.endsWith("gif")) {
-            return modifyGif(member)
+            return modifyGif(member, key)
         }
         val profileReq = Request.Builder().url(profileUrl).build()
         val profileResp = Bot.client.newCall(profileReq).execute()
@@ -32,7 +32,9 @@ object ProfileModifier {
             throw CommandException("There was an error retrieving your profile")
 
         val profile = ImageIO.read(profileResp.body()!!.byteStream())
-        val overlay = overlayCache.computeIfAbsent(member.guild.id) { getOverlay(it) }
+        val overlay = overlayCache.computeIfAbsent("${member.guild.id}-$key") {
+            getOverlay(member.guild, key)
+        }
 
         val newImage = BufferedImage(profile.width, profile.height, BufferedImage.TYPE_INT_ARGB)
         val g = newImage.graphics
@@ -46,7 +48,7 @@ object ProfileModifier {
         return os
     }
 
-    fun modifyGif(member: Member): ByteArrayOutputStream? {
+    fun modifyGif(member: Member, key: String): ByteArrayOutputStream? {
         val profileUrl = member.user.effectiveAvatarUrl
         val profileReq = Request.Builder().url(profileUrl).build()
         val profileResp = Bot.client.newCall(profileReq).execute()
@@ -59,7 +61,9 @@ object ProfileModifier {
         val writer = GifSequenceWriter(ios, frames[0].image.type, frames[0].delay * 10, true,
                 frames[0].disposal)
 
-        val overlay = overlayCache.computeIfAbsent(member.guild.id) { getOverlay(it) }
+        val overlay = overlayCache.computeIfAbsent("${member.guild.id}-$key") {
+            getOverlay(member.guild, key)
+        }
 
         frames.forEach {
             val newImage = BufferedImage(it.image.width, it.image.height,
@@ -82,11 +86,10 @@ object ProfileModifier {
         return bos
     }
 
-    private fun getOverlay(guildId: String): BufferedImage {
-        val overlay = overlayDir.child("$guildId.png")
-        if (!overlay.exists())
-            throw CommandException("No overlay configured for this guild!")
-        return ImageIO.read(overlay)
+    private fun getOverlay(guild: Guild, key: String): BufferedImage {
+        val file = OverlayManager.getOverlay(guild, key) ?: throw CommandException(
+                "Overlay not found! Use `!overlays` for a list of overlays")
+        return ImageIO.read(file)
     }
 
     private fun resizeImage(img: BufferedImage, width: Int, height: Int): BufferedImage {
@@ -182,8 +185,9 @@ object ProfileModifier {
                     }
                 }
 
-                if(from == null){
-                    from = BufferedImage(master.colorModel, master.copyData(null), master.isAlphaPremultiplied, null)
+                if (from == null) {
+                    from = BufferedImage(master.colorModel, master.copyData(null),
+                            master.isAlphaPremultiplied, null)
                 }
 
                 master = BufferedImage(from.colorModel, from.copyData(null),

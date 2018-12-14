@@ -16,15 +16,29 @@ class Commands {
 
     private var processedBytes = 0
 
-    @Command(name = "profile")
+    @Command(name = "overlays")
+    fun overlays(context: Context, cmdContext: CommandContext) {
+        val overlays = buildString {
+            appendln("The following overlays are available: Use `!profile <overlay>`")
+            appendln("```")
+            OverlayManager.getOverlays(context.guild).forEach {
+                appendln(" - $it")
+            }
+            appendln("```")
+        }
+        context.channel.sendMessage(overlays).queue()
+    }
+
+    @Command(name = "profile", arguments = ["[overlay:string]"])
     fun profile(context: Context, cmdContext: CommandContext) {
-        val whitelist = Configuration.channelWhitelist[context.guild.id]!!
+        val whitelist = Configuration.channelWhitelist[context.guild.id] ?: emptyList()
+        val overlay = cmdContext.get<String>("overlay") ?: "default"
         if (context.channel.id !in whitelist && whitelist.isNotEmpty())
             return
         val expiresAt = cooldowns[context.author.id] ?: 0
         if (expiresAt > System.currentTimeMillis() && context.author.id !in Configuration.admins)
             return
-        val os = ProfileModifier.modify(context.member) ?: throw CommandException(
+        val os = ProfileModifier.modify(context.member, overlay) ?: throw CommandException(
                 "An error occurred, try again later")
 
         processedBytes += os.size()
@@ -73,7 +87,7 @@ class Commands {
         }).queue()
     }
 
-    @Command(name = "whitelist", arguments = ["<channel:string>"], parent = "hb")
+    @Command(name = "whitelist", arguments = ["<channel:string>"], parent = "hb", clearance = 100)
     fun whitelist(context: Context, cmdContext: CommandContext) {
         val channel = cmdContext.getNotNull<String>("channel")
         val regex = Regex("\\d{17,18}")
@@ -88,7 +102,7 @@ class Commands {
                 ":ok_hand: Channel ${textChannel.asMention} has bee whitelisted!").queue()
     }
 
-    @Command(name = "unwhitelist", arguments = ["<channel:string>"], parent = "hb")
+    @Command(name = "unwhitelist", arguments = ["<channel:string>"], parent = "hb", clearance = 100)
     fun unwhitelist(context: Context, cmdContext: CommandContext) {
         val channel = cmdContext.getNotNull<String>("channel")
         val regex = Regex("\\d{17,18}")
@@ -101,6 +115,33 @@ class Commands {
         Configuration.removeWhitelist(textChannel.guild, textChannel)
         context.channel.sendMessage(
                 ":ok_hand: Channel ${textChannel.asMention} has bee unwhitelisted!").queue()
+    }
+
+    @Command(name = "overlay add",
+            arguments = ["<key:string>", "[guild:snowflake]", "[url:string]"], parent = "hb", clearance = 100)
+    fun addOverlay(context: Context, cmdContext: CommandContext) {
+        val url = cmdContext.get<String>("url") ?: context.attachments.firstOrNull()?.url
+        ?: throw CommandException("Upload or link a file")
+        val key = cmdContext.getNotNull<String>("key")
+        val guildId = cmdContext.get<String>("guild") ?: context.guild.id
+        val guild = Bot.manager.getGuild(guildId) ?: throw CommandException("Invalid guild")
+        try {
+            OverlayManager.addOverlay(guild, url, key)
+        } catch (e: Exception) {
+            throw CommandException(e.message ?: "An unknown error occurred")
+        }
+        context.channel.sendMessage(
+                "Registered `$url` as an overlay on `${guild.name}` under the key `$key`").queue()
+    }
+
+    @Command(name = "overlay remove", arguments = ["<key:string>", "[guild:snowflake]"], parent = "hb", clearance = 100)
+    fun removeOverlay(context: Context, cmdContext: CommandContext) {
+        val key = cmdContext.getNotNull<String>("key")
+        val guildId = cmdContext.get<String>("guild") ?: context.guild.id
+        val guild = Bot.manager.getGuild(guildId) ?: throw CommandException("Invalid guild")
+
+        OverlayManager.deleteOverlay(guild, key)
+        context.channel.sendMessage("Removed `$key` as an overlay in `${guild.name}`").queue()
     }
 
 }

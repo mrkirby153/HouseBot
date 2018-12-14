@@ -51,12 +51,12 @@ object Configuration {
      * @param textChannel The text channel
      */
     fun addWhitelist(guild: Guild, textChannel: TextChannel) {
-        val guildObj = this.config.getJSONObject("guilds")
+        val guildObj = this.config.optJSONObject("guilds")
                 ?: JSONObject().apply { this@Configuration.config.put("guilds", this) }
-        val guildSettings = guildObj.getJSONObject(guild.id) ?: JSONObject().apply {
+        val guildSettings = guildObj.optJSONObject(guild.id) ?: JSONObject().apply {
             guildObj.put(guild.id, this)
         }
-        val arr = guildSettings.getJSONArray("channels")
+        val arr = guildSettings.optJSONArray("channels")
                 ?: JSONArray().apply { guildSettings.put("channels", this) }
         arr.put(textChannel.id)
         save()
@@ -69,9 +69,9 @@ object Configuration {
      * @param textChannel The text channel
      */
     fun removeWhitelist(guild: Guild, textChannel: TextChannel) {
-        val guildObj = this.config.getJSONObject("guilds") ?: return
-        val guildSettings = guildObj.getJSONObject(guild.id) ?: return
-        val arr = guildSettings.getJSONArray("channels") ?: return
+        val guildObj = this.config.optJSONObject("guilds") ?: return
+        val guildSettings = guildObj.optJSONObject(guild.id) ?: return
+        val arr = guildSettings.optJSONArray("channels") ?: return
         val it = arr.iterator()
         while (it.hasNext()) {
             if (it.next() as String == textChannel.id)
