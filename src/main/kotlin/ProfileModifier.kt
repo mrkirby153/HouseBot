@@ -12,6 +12,7 @@ import java.io.File
 import java.io.InputStream
 import java.util.ArrayList
 import javax.imageio.ImageIO
+import javax.imageio.metadata.IIOMetadata
 import javax.imageio.metadata.IIOMetadataNode
 
 
@@ -54,7 +55,9 @@ object ProfileModifier {
         val profileResp = Bot.client.newCall(profileReq).execute()
         if (profileResp.code() != 200)
             throw CommandException("There was an error retrieving your profile")
-        val frames = readGif(profileResp.body()!!.byteStream())
+        val pair = readGif(profileResp.body()!!.byteStream())
+        val frames = pair.first
+        val metadata = pair.second
 
         val bos = ByteArrayOutputStream()
         val ios = ImageIO.createImageOutputStream(bos)
@@ -74,6 +77,7 @@ object ProfileModifier {
             graphics.dispose()
             writer.writeToSequence(newImage, it.delay, it.disposal)
         }
+        writer.close()
         profileResp.close()
 
         ios.seek(0)
@@ -102,7 +106,7 @@ object ProfileModifier {
         return dImg
     }
 
-    private fun readGif(stream: InputStream): Array<ImageFrame> {
+    private fun readGif(stream: InputStream): Pair<Array<ImageFrame>, IIOMetadata> {
         val reader = ImageIO.getImageReadersByFormatName("gif").next()
         reader.input = ImageIO.createImageInputStream(stream)
 
@@ -201,7 +205,7 @@ object ProfileModifier {
         }
         reader.dispose()
 
-        return frames.toTypedArray()
+        return Pair(frames.toTypedArray(), metadata)
     }
 
     data class ImageFrame(val image: BufferedImage, val delay: Int, val disposal: String)

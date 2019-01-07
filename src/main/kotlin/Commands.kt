@@ -5,6 +5,7 @@ import com.mrkirby153.botcore.command.args.CommandContext
 import me.mrkirby153.kcutils.Time
 import net.dv8tion.jda.core.MessageBuilder
 import java.io.ByteArrayInputStream
+import javax.imageio.IIOException
 
 class Commands {
 
@@ -38,8 +39,20 @@ class Commands {
         val expiresAt = cooldowns[context.author.id] ?: 0
         if (expiresAt > System.currentTimeMillis() && context.author.id !in Configuration.admins)
             return
-        val os = ProfileModifier.modify(context.member, overlay) ?: throw CommandException(
-                "An error occurred, try again later")
+        val os =
+                try {
+                    ProfileModifier.modify(context.member, overlay) ?: throw CommandException(
+                            "Could not modify your profile")
+                } catch (e: IIOException) {
+                    // TODO 1/6/2019 Remove this eventually™
+                    if (e.message?.contains("Unexpected block type") == true) {
+                        throw CommandException(
+                                "Your profile picture has been previously processed by me. Due to a recently fixed bug, I cannot process your current profile picture. Please change your profile picture and try again")
+                    } else {
+                        e.printStackTrace()
+                        throw CommandException("An unknown error occurred")
+                    }
+                }
 
         processedBytes += os.size()
 
@@ -118,7 +131,8 @@ class Commands {
     }
 
     @Command(name = "overlay add",
-            arguments = ["<key:string>", "[guild:snowflake]", "[url:string]"], parent = "hb", clearance = 100)
+            arguments = ["<key:string>", "[guild:snowflake]", "[url:string]"], parent = "hb",
+            clearance = 100)
     fun addOverlay(context: Context, cmdContext: CommandContext) {
         val url = cmdContext.get<String>("url") ?: context.attachments.firstOrNull()?.url
         ?: throw CommandException("Upload or link a file")
@@ -134,7 +148,8 @@ class Commands {
                 "Registered `$url` as an overlay on `${guild.name}` under the key `$key`").queue()
     }
 
-    @Command(name = "overlay remove", arguments = ["<key:string>", "[guild:snowflake]"], parent = "hb", clearance = 100)
+    @Command(name = "overlay remove", arguments = ["<key:string>", "[guild:snowflake]"],
+            parent = "hb", clearance = 100)
     fun removeOverlay(context: Context, cmdContext: CommandContext) {
         val key = cmdContext.getNotNull<String>("key")
         val guildId = cmdContext.get<String>("guild") ?: context.guild.id
