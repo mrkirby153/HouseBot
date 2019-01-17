@@ -5,12 +5,13 @@ import com.mrkirby153.botcore.command.args.CommandContext
 import me.mrkirby153.kcutils.Time
 import net.dv8tion.jda.core.MessageBuilder
 import java.io.ByteArrayInputStream
+import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.IIOException
 
 class Commands {
 
     private val cooldownDelay = 30 * 1000L
-    private val cooldowns = mutableMapOf<String, Long>()
+    private val cooldowns = ConcurrentHashMap<String, Long>()
 
     private var processedGifs = 0
     private var processedStatic = 0
@@ -66,7 +67,9 @@ class Commands {
             processedStatic++
 
         context.channel.sendFile(inputStream, name,
-                MessageBuilder("${context.author.asMention} here is your picture!").build()).queue {
+                MessageBuilder(
+                        "${context.author.asMention} here is your picture!").build()).queue {
+            Bot.debugLog("File uploaded")
             os.close()
             inputStream.close()
         }

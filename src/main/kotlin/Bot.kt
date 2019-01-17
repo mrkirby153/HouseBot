@@ -7,6 +7,7 @@ import net.dv8tion.jda.core.hooks.ListenerAdapter
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
+import java.util.concurrent.Executors
 
 object Bot {
 
@@ -20,6 +21,7 @@ object Bot {
 
     var startTime = 0L
 
+    val profileExecutor = Executors.newFixedThreadPool(5)
     @JvmStatic
     fun main(args: Array<String>) {
         Configuration.load()
@@ -46,7 +48,9 @@ object Bot {
     class Listener : ListenerAdapter() {
 
         override fun onGuildMessageReceived(event: GuildMessageReceivedEvent) {
-            executor.execute(event.message)
+            Bot.profileExecutor.submit {
+                executor.execute(event.message)
+            }
         }
     }
 }
