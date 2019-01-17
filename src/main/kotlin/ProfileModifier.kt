@@ -32,6 +32,11 @@ object ProfileModifier {
         if (profileResp.code() != 200)
             throw CommandException("There was an error retrieving your profile")
 
+        if (profileResp.body()!!.contentLength() > 8e6) {
+            throw CommandException(
+                    "Your profile picture is too large to process. Please choose a smaller one.")
+        }
+
         val profile = ImageIO.read(profileResp.body()!!.byteStream())
         val overlay = overlayCache.computeIfAbsent("${member.guild.id}-$key") {
             getOverlay(member.guild, key)
@@ -55,6 +60,12 @@ object ProfileModifier {
         val profileResp = Bot.client.newCall(profileReq).execute()
         if (profileResp.code() != 200)
             throw CommandException("There was an error retrieving your profile")
+
+        if (profileResp.body()!!.contentLength() > 8e6) {
+            throw CommandException(
+                    "Your profile picture is too large to process. Please choose a smaller one.")
+        }
+
         val pair = readGif(profileResp.body()!!.byteStream())
         val frames = pair.first
         val metadata = pair.second
