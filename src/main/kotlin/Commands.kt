@@ -170,4 +170,12 @@ class Commands {
                 "Debug set to ${cmdContext.getNotNull<String>("state")}").queue()
     }
 
+    @Command(name = "ping", parent = "hb", clearance = 100)
+    fun ping(context: Context, cmdContext: CommandContext) {
+        val t = System.currentTimeMillis()
+        context.channel.sendTyping().queue {
+            val time = System.currentTimeMillis() - t
+            context.channel.sendMessage(":ping_pong: Pong `${Time.format(1, time)}`").queue()
+        }
+    }
 }
