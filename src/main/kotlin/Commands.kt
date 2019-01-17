@@ -77,14 +77,14 @@ class Commands {
         cooldowns[context.author.id] = System.currentTimeMillis() + cooldownDelay
     }
 
-    @Command(name = "shutdown", clearance = 100)
+    @Command(name = "shutdown", clearance = 100, parent = "hb")
     fun shutdown(context: Context, cmdContext: CommandContext) {
         context.channel.sendMessage("Shutting down...").queue {
             Bot.manager.shutdownAll()
         }
     }
 
-    @Command(name = "reset", parent = "cooldown", clearance = 100,
+    @Command(name = "cooldown reset", parent = "hb", clearance = 100,
             arguments = ["<user:snowflake>"])
     fun cooldownReset(context: Context, cmdContext: CommandContext) {
         val id = cmdContext.getNotNull<String>("user")
@@ -92,7 +92,7 @@ class Commands {
         context.channel.sendMessage(":ok_hand: Reset the cooldown for $id").queue()
     }
 
-    @Command(name = "stats", clearance = 100)
+    @Command(name = "stats", clearance = 100, parent = "hb")
     fun stats(context: Context, cmdContext: CommandContext) {
         context.channel.sendMessage(buildString {
             appendln("```py")
