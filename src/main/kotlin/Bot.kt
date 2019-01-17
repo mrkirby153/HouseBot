@@ -22,6 +22,9 @@ object Bot {
     var startTime = 0L
 
     val profileExecutor = Executors.newFixedThreadPool(5)
+
+    var debug = false;
+
     @JvmStatic
     fun main(args: Array<String>) {
         Configuration.load()
@@ -43,6 +46,12 @@ object Bot {
         manager.addListener(Listener())
         println("Ready to go!")
         startTime = System.currentTimeMillis()
+    }
+
+    fun debugLog(msg: String) {
+        if(!debug)
+            return
+        println("[DEBUG] $msg")
     }
 
     class Listener : ListenerAdapter() {

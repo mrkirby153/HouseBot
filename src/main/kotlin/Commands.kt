@@ -66,6 +66,7 @@ class Commands {
         else
             processedStatic++
 
+        Bot.debugLog("Uploading file")
         context.channel.sendFile(inputStream, name,
                 MessageBuilder(
                         "${context.author.asMention} here is your picture!").build()).queue {
@@ -160,6 +161,13 @@ class Commands {
 
         OverlayManager.deleteOverlay(guild, key)
         context.channel.sendMessage("Removed `$key` as an overlay in `${guild.name}`").queue()
+    }
+
+    @Command(name = "debug", arguments = ["<state:string>"], parent = "hb", clearance = 100)
+    fun toggleDebug(context: Context, cmdContext: CommandContext) {
+        Bot.debug = cmdContext.getNotNull<String>("state").toBoolean()
+        context.channel.sendMessage(
+                "Debug set to ${cmdContext.getNotNull<String>("state")}").queue()
     }
 
 }
