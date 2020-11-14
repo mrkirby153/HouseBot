@@ -1,7 +1,7 @@
 import com.mrkirby153.botcore.command.CommandException
 import me.mrkirby153.kcutils.mkdirIfNotExist
-import net.dv8tion.jda.core.entities.Guild
-import net.dv8tion.jda.core.entities.Member
+import net.dv8tion.jda.api.entities.Guild
+import net.dv8tion.jda.api.entities.Member
 import okhttp3.Request
 import java.awt.Color
 import java.awt.Graphics2D
@@ -32,17 +32,17 @@ object ProfileModifier {
         Bot.debugLog("Making request to $profileUrl")
         val profileReq = Request.Builder().url(profileUrl).build()
         val profileResp = Bot.client.newCall(profileReq).execute()
-        if (profileResp.code() != 200)
+        if (profileResp.code != 200)
             throw CommandException("There was an error retrieving your profile")
 
-        if (profileResp.body()!!.contentLength() > 8e6) {
+        if (profileResp.body!!.contentLength() > 8e6) {
             Bot.debugLog("Picture is too large")
             throw CommandException(
                     "Your profile picture is too large to process. Please choose a smaller one.")
         }
 
         Bot.debugLog("Decoding profile picture")
-        val profile = ImageIO.read(profileResp.body()!!.byteStream())
+        val profile = ImageIO.read(profileResp.body!!.byteStream())
         val overlay = overlayCache.computeIfAbsent("${member.guild.id}-$key") {
             getOverlay(member.guild, key)
         }
@@ -68,17 +68,17 @@ object ProfileModifier {
         Bot.debugLog("Making request to $profileUrl")
         val profileReq = Request.Builder().url(profileUrl).build()
         val profileResp = Bot.client.newCall(profileReq).execute()
-        if (profileResp.code() != 200)
+        if (profileResp.code != 200)
             throw CommandException("There was an error retrieving your profile")
 
-        if (profileResp.body()!!.contentLength() > 8e6) {
+        if (profileResp.body!!.contentLength() > 8e6) {
             Bot.debugLog("Profile is too large")
             throw CommandException(
                     "Your profile picture is too large to process. Please choose a smaller one.")
         }
 
         Bot.debugLog("Decoding gif")
-        val pair = readGif(profileResp.body()!!.byteStream())
+        val pair = readGif(profileResp.body!!.byteStream())
         val frames = pair.first
         val metadata = pair.second
 

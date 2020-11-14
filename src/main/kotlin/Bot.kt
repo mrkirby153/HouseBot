@@ -1,9 +1,11 @@
-
+import com.mrkirby153.botcore.command.ClearanceResolver
 import com.mrkirby153.botcore.command.CommandExecutor
-import com.mrkirby153.botcore.shard.ShardManager
 import me.mrkirby153.kcutils.mkdirIfNotExist
-import net.dv8tion.jda.core.events.message.guild.GuildMessageReceivedEvent
-import net.dv8tion.jda.core.hooks.ListenerAdapter
+import net.dv8tion.jda.api.entities.Member
+import net.dv8tion.jda.api.events.message.guild.GuildMessageReceivedEvent
+import net.dv8tion.jda.api.hooks.ListenerAdapter
+import net.dv8tion.jda.api.sharding.DefaultShardManagerBuilder
+import net.dv8tion.jda.api.sharding.ShardManager
 import okhttp3.Cache
 import okhttp3.OkHttpClient
 import java.io.File
@@ -28,28 +30,32 @@ object Bot {
     @JvmStatic
     fun main(args: Array<String>) {
         Configuration.load()
-        manager = ShardManager(Configuration.token)
-        manager.startAllShards(false)
-        val us = manager.getShard(0).selfUser
+        manager = DefaultShardManagerBuilder.createLight(Configuration.token).build()
+        // Wait for all the shards to start up
+        manager.shards.forEach { it.awaitReady() }
+        val us = manager.shards[0].selfUser
         println("Logged in as ${us.name}#${us.discriminator}!")
         executor = CommandExecutor(prefix = "!", mentionMode = CommandExecutor.MentionMode.DISABLED,
                 shardManager = manager)
-        executor.clearanceResolver = {
-            if (it.user.id in Configuration.admins)
-                100
-            else
-                0
+        executor.clearanceResolver = object : ClearanceResolver {
+            override fun resolve(member: Member): Int {
+                return if (member.user.id in Configuration.admins)
+                    100
+                else
+                    0
+            }
+
         }
         executor.alertUnknownCommand = false
         executor.alertNoClearance = false
         executor.register(Commands::class.java)
-        manager.addListener(Listener())
+        manager.addEventListener(Listener())
         println("Ready to go!")
         startTime = System.currentTimeMillis()
     }
 
     fun debugLog(msg: String) {
-        if(!debug)
+        if (!debug)
             return
         println("[DEBUG] $msg")
     }
@@ -57,7 +63,7 @@ object Bot {
     class Listener : ListenerAdapter() {
 
         override fun onGuildMessageReceived(event: GuildMessageReceivedEvent) {
-            Bot.profileExecutor.submit {
+            profileExecutor.submit {
                 executor.execute(event.message)
             }
         }

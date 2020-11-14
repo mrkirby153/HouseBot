@@ -3,7 +3,7 @@ import com.mrkirby153.botcore.command.CommandException
 import com.mrkirby153.botcore.command.Context
 import com.mrkirby153.botcore.command.args.CommandContext
 import me.mrkirby153.kcutils.Time
-import net.dv8tion.jda.core.MessageBuilder
+import net.dv8tion.jda.api.entities.Message
 import java.io.ByteArrayInputStream
 import java.util.concurrent.ConcurrentHashMap
 import javax.imageio.IIOException
@@ -21,12 +21,12 @@ class Commands {
     @Command(name = "overlays")
     fun overlays(context: Context, cmdContext: CommandContext) {
         val overlays = buildString {
-            appendln("The following overlays are available: Use `!profile <overlay>`")
-            appendln("```")
+            appendLine("The following overlays are available: Use `!profile <overlay>`")
+            appendLine("```")
             OverlayManager.getOverlays(context.guild).forEach {
-                appendln(" - $it")
+                appendLine(" - $it")
             }
-            appendln("```")
+            appendLine("```")
         }
         context.channel.sendMessage(overlays).queue()
     }
@@ -42,7 +42,7 @@ class Commands {
             return
         val os =
                 try {
-                    ProfileModifier.modify(context.member, overlay) ?: throw CommandException(
+                    ProfileModifier.modify(context.member!!, overlay) ?: throw CommandException(
                             "Could not modify your profile")
                 } catch (e: IIOException) {
                     // TODO 1/6/2019 Remove this eventually™
@@ -67,9 +67,10 @@ class Commands {
             processedStatic++
 
         Bot.debugLog("Uploading file")
-        context.channel.sendFile(inputStream, name,
-                MessageBuilder(
-                        "${context.author.asMention} here is your picture!").build()).queue {
+        context.channel.sendFile(inputStream, name).content(
+                "${context.author.asMention} here is your picture").mention(
+                context.author).allowedMentions(
+                listOf(Message.MentionType.USER)).queue {
             Bot.debugLog("File uploaded")
             os.close()
             inputStream.close()
@@ -80,7 +81,7 @@ class Commands {
     @Command(name = "shutdown", clearance = 100, parent = "hb")
     fun shutdown(context: Context, cmdContext: CommandContext) {
         context.channel.sendMessage("Shutting down...").queue {
-            Bot.manager.shutdownAll()
+            Bot.manager.shutdown()
         }
     }
 
@@ -95,11 +96,11 @@ class Commands {
     @Command(name = "stats", clearance = 100, parent = "hb")
     fun stats(context: Context, cmdContext: CommandContext) {
         context.channel.sendMessage(buildString {
-            appendln("```py")
-            appendln("$processedGifs gifs processed")
-            appendln("$processedStatic pngs processed")
-            appendln("${processedBytes / 1000000.0}MB of data processed")
-            appendln("Uptime: ${Time.formatLong(System.currentTimeMillis() - Bot.startTime)}")
+            appendLine("```py")
+            appendLine("$processedGifs gifs processed")
+            appendLine("$processedStatic pngs processed")
+            appendLine("${processedBytes / 1000000.0}MB of data processed")
+            appendLine("Uptime: ${Time.formatLong(System.currentTimeMillis() - Bot.startTime)}")
             append("```")
         }).queue()
     }
@@ -142,7 +143,7 @@ class Commands {
         ?: throw CommandException("Upload or link a file")
         val key = cmdContext.getNotNull<String>("key")
         val guildId = cmdContext.get<String>("guild") ?: context.guild.id
-        val guild = Bot.manager.getGuild(guildId) ?: throw CommandException("Invalid guild")
+        val guild = Bot.manager.getGuildById(guildId) ?: throw CommandException("Invalid guild")
         try {
             OverlayManager.addOverlay(guild, url, key)
         } catch (e: Exception) {
@@ -157,7 +158,7 @@ class Commands {
     fun removeOverlay(context: Context, cmdContext: CommandContext) {
         val key = cmdContext.getNotNull<String>("key")
         val guildId = cmdContext.get<String>("guild") ?: context.guild.id
-        val guild = Bot.manager.getGuild(guildId) ?: throw CommandException("Invalid guild")
+        val guild = Bot.manager.getGuildById(guildId) ?: throw CommandException("Invalid guild")
 
         OverlayManager.deleteOverlay(guild, key)
         context.channel.sendMessage("Removed `$key` as an overlay in `${guild.name}`").queue()

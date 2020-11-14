@@ -2,7 +2,7 @@
 import me.mrkirby153.kcutils.child
 import me.mrkirby153.kcutils.createFileIfNotExist
 import me.mrkirby153.kcutils.utils.IdGenerator
-import net.dv8tion.jda.core.entities.Guild
+import net.dv8tion.jda.api.entities.Guild
 import okhttp3.Request
 import org.json.JSONObject
 import org.json.JSONTokener
@@ -57,10 +57,10 @@ object OverlayManager {
     fun addOverlay(guild: Guild, url: String, name: String) {
         val request = Request.Builder().url(url).build()
         val resp = Bot.client.newCall(request).execute()
-        if (resp.code() != 200)
-            throw IllegalStateException("Received unexpected error code ${resp.code()}")
+        if (resp.code != 200)
+            throw IllegalStateException("Received unexpected error code ${resp.code}")
 
-        val body = resp.body()?.bytes() ?: throw IllegalStateException(
+        val body = resp.body?.bytes() ?: throw IllegalStateException(
                 "Response body was null")
 
         val folder = basePath.child(guild.id).apply { mkdirs() }
